@@ -77,37 +77,20 @@
 
     <div id="toast" class="toast">Action successful</div>
 
-    <!-- PAGE 1: LOGIN / SETUP -->
+        <!-- PAGE 1: LOGIN / SETUP -->
     <div id="page-login" class="container">
-        <div class="card" style="text-align: center;">
+        <div class="card" style="text-align: center; max-width: 400px; margin: 0 auto;">
             <img src="icon.png" alt="Loonie Board Emblem" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid var(--border);">
             <h1 id="login-title">SecureText Vault</h1>
-            <p id="login-desc">Enter your 4+ digit PIN to unlock your encrypted keys.</p>
+            <p id="login-prompt-text">Enter your master PIN or password to unlock your keys.</p>
             
-            <div class="pin-dots" id="pin-dots">
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-            </div>
-
             <div id="lockout-msg" class="hidden" style="color: var(--danger); margin-bottom: 15px; font-weight: bold;"></div>
 
-            <div class="numpad">
-                <button onclick="pressPin('1')">1</button>
-                <button onclick="pressPin('2')">2</button>
-                <button onclick="pressPin('3')">3</button>
-                <button onclick="pressPin('4')">4</button>
-                <button onclick="pressPin('5')">5</button>
-                <button onclick="pressPin('6')">6</button>
-                <button onclick="pressPin('7')">7</button>
-                <button onclick="pressPin('8')">8</button>
-                <button onclick="pressPin('9')">9</button>
-                <button onclick="clearPin()" style="font-size: 0.9rem;">C</button>
-                <button onclick="pressPin('0')">0</button>
-                <button onclick="backspacePin()" style="font-size: 0.9rem;">⌫</button>
+            <div style="margin-bottom: 16px; text-align: left;">
+                <input type="password" id="login-pin-input" placeholder="Enter PIN / Password" style="margin-bottom: 0;" onkeydown="if(event.key === 'Enter') submitPin()">
             </div>
-            <button id="pin-submit-btn" class="hidden" style="margin-top: 20px;" onclick="submitPin()">Confirm PIN Setup</button>
+
+            <button id="pin-submit-btn" onclick="submitPin()">Unlock</button>
         </div>
     </div>
 
@@ -168,16 +151,36 @@
                     <option value="light">Light Theme</option>
                 </select>
 
-                <h3 style="margin-top: 24px;">Change App PIN</h3>
-                <input type="password" id="old-pin" placeholder="Current PIN">
-                <input type="password" id="new-pin" placeholder="New PIN (4+ digits)">
-                <button onclick="updatePin()">Update Master PIN</button>
+                <h3 style="margin-top: 24px;">Security & Login Preferences</h3>
 
-                <h3 style="margin-top: 24px; color: var(--danger);">Danger Zone</h3>
-                <button class="danger" onclick="factoryReset()">Wipe Vault & Reset App</button>
-            </div>
+        <!-- Login Type Toggle -->
+        <div class="setting-item" style="margin-bottom: 12px; text-align: left;">
+            <label for="login-type-toggle" style="display: block; margin-bottom: 6px;">Login Credential Type:</label>
+            <select id="login-type-toggle" style="width: 100%; padding: 8px;">
+                <option value="password">Master Password</option>
+                <option value="pin">Numeric PIN (4-6 digits)</option>
+            </select>
         </div>
 
+        <!-- Credential Preset / Update -->
+        <div class="setting-item" style="margin-bottom: 16px; text-align: left;">
+            <label id="credential-label" for="master-credential" style="display: block; margin-bottom: 6px;">Set Master Password:</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="password" id="master-credential" placeholder="Enter new credential..." style="flex: 1; padding: 8px;" />
+                <button id="save-credential-btn" type="button" style="padding: 8px 16px;">Save Preset</button>
+            </div>
+            <small id="credential-hint" style="display: block; margin-top: 4px; color: var(--text-muted, #888);">Use a strong password (at least 8 characters recommended).</small>
+        </div>
+
+        <h3 style="margin-top: 24px; text-align: left;">Change App Credential</h3>
+        <input type="password" id="old-pin" placeholder="Current Password or PIN">
+        <input type="password" id="new-pin" placeholder="New Password or PIN (4+ digits)">
+        <button onclick="updatePin()" style="width: 100%; margin-top: 8px;">Update Master Credential</button>
+
+        <h3 style="margin-top: 24px; color: var(--danger); text-align: left;">Danger Zone</h3>
+        <button class="danger" onclick="factoryReset()" style="width: 100%;">Wipe Vault & Reset App</button>
+            </div>
+        </div>
         <!-- NAVIGATION BAR -->
         <nav>
             <button onclick="switchPage('keyboard')" class="active" id="nav-keyboard">⌨️ Keyboard</button>
@@ -259,10 +262,29 @@
         const vault = localStorage.getItem('securetext_vault');
         const saltHex = localStorage.getItem('securetext_salt');
         
+        // Adapt login input constraints based on saved preference (PIN vs Password)
+        const authType = localStorage.getItem('auth_type') || 'password';
+        const loginInput = document.getElementById('login-pin-input');
+        const loginPrompt = document.getElementById('login-prompt-text');
+
+        if (loginInput) {
+            if (authType === 'pin') {
+                if (loginPrompt) loginPrompt.textContent = 'Enter your 4-6 digit PIN to unlock.';
+                loginInput.placeholder = 'Enter 4-6 digit PIN';
+                loginInput.inputMode = 'numeric';
+                loginInput.maxLength = 6;
+            } else {
+                if (loginPrompt) loginPrompt.textContent = 'Enter your master password to unlock.';
+                loginInput.placeholder = 'Enter master password';
+                loginInput.inputMode = 'text';
+                loginInput.removeAttribute('maxLength');
+            }
+        }
+
         if (!vault || !saltHex) {
             setupMode = true;
-            document.getElementById('login-title').innerText = "Create Master PIN";
-            document.getElementById('login-desc').innerText = "Set a secure PIN to encrypt all your future ciphers.";
+            document.getElementById('login-title').innerText = "Create Master Credential";
+            document.getElementById('login-desc').innerText = "Set a secure PIN or password to encrypt all your future ciphers.";
             document.getElementById('pin-submit-btn').classList.remove('hidden');
         }
 
@@ -306,13 +328,13 @@
             currentPinInput += num;
             updatePinDots();
         }
-        if (setupMode && currentPinInput.length >= 4) {
+        
+        // Always show the submit button once minimum length of 4 is met, 
+        // removing the forced auto-submit trap.
+        if (currentPinInput.length >= 4) {
             document.getElementById('pin-submit-btn').classList.remove('hidden');
-        } else if (!setupMode && currentPinInput.length >= 4) {
-            // Auto submit standard login at 4 digits if desired, or let them enter full PIN
-            if (currentPinInput.length === 4) {
-                setTimeout(submitPin, 200);
-            }
+        } else {
+            document.getElementById('pin-submit-btn').classList.add('hidden');
         }
     }
 
@@ -338,15 +360,25 @@
     }
 
     async function submitPin() {
-        if (currentPinInput.length < 4) {
-            showToast("PIN must be at least 4 digits");
+        const pinInputVal = document.getElementById('login-pin-input').value.trim();
+        const authType = localStorage.getItem('auth_type') || 'password';
+
+        // Validate format based on chosen authentication type
+        if (authType === 'pin' && !/^\d{4,6}$/.test(pinInputVal)) {
+            showToast("PIN must be between 4 and 6 digits");
+            return;
+        } else if (authType === 'password' && pinInputVal.length < 8) {
+            showToast("Password must be at least 8 characters long");
+            return;
+        } else if (setupMode && pinInputVal.length < 4) {
+            showToast("Credential must be at least 4 characters");
             return;
         }
 
         if (setupMode) {
             // Create New Vault
             const salt = window.crypto.getRandomValues(new Uint8Array(16));
-            masterKey = await deriveKey(currentPinInput, salt);
+            masterKey = await deriveKey(pinInputVal, salt);
             
             // Save initial empty payload
             appData = { ciphers: [{ id: 'default-1', name: 'Default Shared Cipher', passphrase: generateRandomString(12) }], settings: { theme: 'dark' } };
@@ -360,7 +392,7 @@
             // Verify Login
             const saltStr = localStorage.getItem('securetext_salt');
             const salt = Uint8Array.from(saltStr.split(',').map(Number));
-            const candidateKey = await deriveKey(currentPinInput, salt);
+            const candidateKey = await deriveKey(pinInputVal, salt);
             
             const vault = localStorage.getItem('securetext_vault');
             const decrypted = await decryptData(vault, candidateKey);
@@ -374,15 +406,16 @@
                 // Failed login tracking
                 let fails = parseInt(localStorage.getItem('securetext_fails') || '0') + 1;
                 localStorage.setItem('securetext_fails', fails);
-                currentPinInput = "";
-                updatePinDots();
+                
+                // Clear the password field on failure
+                document.getElementById('login-pin-input').value = "";
 
                 if (fails >= 3) {
                     const lockoutTime = Date.now() + (3 * 60 * 1000); // 3 minutes timeout
                     localStorage.setItem('securetext_lockout', lockoutTime);
                     lockoutActive(3 * 60 * 1000);
                 } else {
-                    showToast(`Incorrect PIN. Attempt ${fails} of 3.`);
+                    showToast(`Incorrect credential. Attempt ${fails} of 3.`);
                 }
             }
         }
@@ -666,6 +699,68 @@
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
     }
+
+        const loginToggle = document.getElementById('login-type-toggle');
+        const credentialInput = document.getElementById('master-credential');
+        const credentialLabel = document.getElementById('credential-label');
+        const credentialHint = document.getElementById('credential-hint');
+        const saveCredentialBtn = document.getElementById('save-credential-btn');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedType = localStorage.getItem('auth_type') || 'password';
+            if (loginToggle) {
+                loginToggle.value = savedType;
+                updateCredentialUI(savedType);
+            }
+        });
+
+        if (loginToggle) {
+            loginToggle.addEventListener('change', (e) => {
+                const type = e.target.value;
+                localStorage.setItem('auth_type', type);
+                updateCredentialUI(type);
+            });
+        }
+
+        function updateCredentialUI(type) {
+            if (type === 'pin') {
+                credentialLabel.textContent = 'Set Login PIN:';
+                credentialInput.type = 'password';
+                credentialInput.inputMode = 'numeric';
+                credentialInput.maxLength = 6;
+                credentialHint.textContent = 'Enter a 4 to 6-digit numeric PIN.';
+            } else {
+                credentialLabel.textContent = 'Set Master Password:';
+                credentialInput.type = 'password';
+                credentialInput.inputMode = 'text';
+                credentialInput.removeAttribute('maxLength');
+                credentialHint.textContent = 'Use a strong password (at least 8 characters recommended).';
+            }
+        }
+
+        if (saveCredentialBtn) {
+            saveCredentialBtn.addEventListener('click', async () => {
+                const val = credentialInput.value;
+                const type = loginToggle.value;
+
+                if (type === 'pin' && !/^\d{4,6}$/.test(val)) {
+                    alert('PIN must be between 4 and 6 digits.');
+                    return;
+                } else if (type === 'password' && val.length < 8) {
+                    alert('Password must be at least 8 characters long.');
+                    return;
+                }
+
+                sessionStorage.setItem('active_credential', val);
+                
+                // Optional: Auto-fill the login input if they are testing it
+                const loginInput = document.getElementById('login-pin-input');
+                if (loginInput) loginInput.value = val;
+
+                alert('Master credential preset saved & loaded into login!');
+                credentialInput.value = '';
+            });
+        }
 </script>
 </body>
 </html>
