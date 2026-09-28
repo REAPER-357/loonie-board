@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SecureText PWA - Zero Knowledge Cryptography</title>
+    <title>Loonie Board PWA - Zero Knowledge Cryptography</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="small_icon.png">
     <link rel="apple-touch-icon" href="small_icon.png">
@@ -34,10 +34,28 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; display: flex; flex-direction: column; transition: background 0.3s, color 0.3s; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: background 0.3s, color 0.3s;
+        }
         
         .hidden { display: none !important; }
-        .container { max-width: 600px; width: 100%; margin: auto; padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 16px 12px 80px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
         
         .card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
         h1, h2, h3 { margin-bottom: 10px; font-weight: 600; }
@@ -53,22 +71,15 @@
         button.secondary { background-color: transparent; border: 1px solid var(--border); color: var(--text-color); }
         button.secondary:hover { background-color: var(--border); }
 
-        /* Navigation bar */
         nav { display: flex; background: var(--card-bg); border-top: 1px solid var(--border); position: fixed; bottom: 0; width: 100%; justify-content: space-around; padding: 10px 0; z-index: 100; }
         nav button { background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         nav button.active { color: var(--primary); font-weight: bold; }
 
-        .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
-        .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: background 0.2s; }
-        .pin-dot.filled { background: var(--primary); border-color: var(--primary); }
-
-        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 280px; margin: 0 auto; }
-        .numpad button { height: 60px; font-size: 1.25rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-color); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-        .numpad button:hover { background: var(--border); }
+        .form-row { display: flex; align-items: center; margin-bottom: 12px; gap: 12px; }
+        .form-row label { width: 110px; font-weight: 500; font-size: 0.9rem; text-align: left; }
+        .form-row input, .form-row select { flex: 1; margin-bottom: 0; }
 
         .cipher-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--input-bg); }
-        .badge { font-size: 0.75rem; background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; }
-        
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 500; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; }
         .toast.show { opacity: 1; }
     </style>
@@ -77,20 +88,43 @@
 
     <div id="toast" class="toast">Action successful</div>
 
-        <!-- PAGE 1: LOGIN / SETUP -->
+    <!-- PAGE 1: SETUP / LOGIN (Dynamic based on state) -->
     <div id="page-login" class="container">
-        <div class="card" style="text-align: center; max-width: 400px; margin: 0 auto;">
-            <img src="icon.png" alt="Loonie Board Emblem" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid var(--border);">
-            <h1 id="login-title">SecureText Vault</h1>
-            <p id="login-prompt-text">Enter your master PIN or password to unlock your keys.</p>
+        <div class="card" style="text-align: center; max-width: 420px; margin: 0 auto;">
+            <img src="icon.png" alt="Loonie Board Emblem" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid var(--border);">
+            <h1 id="login-title">Loonie Board</h1>
+            <p id="login-prompt-text">Set up your master credentials.</p>
             
             <div id="lockout-msg" class="hidden" style="color: var(--danger); margin-bottom: 15px; font-weight: bold;"></div>
 
-            <div style="margin-bottom: 16px; text-align: left;">
-                <input type="password" id="login-pin-input" placeholder="Enter PIN / Password" style="margin-bottom: 0;" onkeydown="if(event.key === 'Enter') submitPin()">
+            <!-- SETUP VIEW -->
+            <div id="setup-section" class="hidden">
+                <div class="form-row">
+                    <label>Password</label>
+                    <input type="password" id="setup-password" placeholder="8+ characters">
+                </div>
+                <div class="form-row">
+                    <label>PIN</label>
+                    <input type="password" id="setup-pin" placeholder="4-6 digits" inputmode="numeric" maxlength="6">
+                </div>
+                <div class="form-row">
+                    <label>Log In with:</label>
+                    <select id="setup-login-with">
+                        <option value="password">Password</option>
+                        <option value="pin">PIN</option>
+                    </select>
+                </div>
+                <button onclick="handleSetup()">Set Up & Create Profile</button>
             </div>
 
-            <button id="pin-submit-btn" onclick="submitPin()">Unlock</button>
+            <!-- LOGIN VIEW -->
+            <div id="login-section" class="hidden">
+                <div class="form-row">
+                    <label id="login-label">Password</label>
+                    <input type="password" id="login-input" placeholder="Enter credential" onkeydown="if(event.key === 'Enter') handleLogin()">
+                </div>
+                <button onclick="handleLogin()">Log In</button>
+            </div>
         </div>
     </div>
 
@@ -111,6 +145,7 @@
                 <div style="display: flex; gap: 10px; margin-bottom: 16px;">
                     <button onclick="encryptText()">Encrypt 🔒</button>
                     <button onclick="decryptText()" class="secondary">Decrypt 🔓</button>
+                    <button type="button" onclick="clearMessageHub()" style="flex: 1; background: var(--border); color: var(--text-color);">Clear</button>
                 </div>
 
                 <label style="font-size: 0.85rem; color: var(--text-muted);">Output / Result</label>
@@ -138,12 +173,14 @@
             </div>
         </div>
 
-        <!-- PAGE 4: SETTINGS -->
+        <!-- PAGE 4: SETTINGS PAGE -->
         <div id="page-settings" class="container app-page hidden">
-            <div class="card" style="text-align: center;">
-                <img src="small_icon.png" alt="Loonie Board Logo" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;">
-                <h2 style="margin-bottom: 4px;">Settings</h2>
-                <p>Manage application behavior and security credentials.</p>
+            <div class="card">
+                <div style="text-align: center; margin-bottom: 16px;">
+                    <img src="small_icon.png" alt="Loonie Board Emblem 2" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;">
+                    <h2 style="margin-bottom: 4px;">Settings Page</h2>
+                    <p>Manage application behavior and security credentials.</p>
+                </div>
                 
                 <label style="font-size: 0.85rem; color: var(--text-muted);">Appearance Theme</label>
                 <select id="theme-select" onchange="changeTheme(this.value)">
@@ -151,36 +188,36 @@
                     <option value="light">Light Theme</option>
                 </select>
 
-                <h3 style="margin-top: 24px;">Security & Login Preferences</h3>
+                <h3 style="margin-top: 20px;">Credentials Management</h3>
+                
+                <div class="form-row">
+                    <label>Password</label>
+                    <input type="password" id="settings-password" placeholder="Not set or hidden">
+                </div>
+                <div class="form-row">
+                    <label>PIN</label>
+                    <input type="password" id="settings-pin" placeholder="Not set or hidden" inputmode="numeric" maxlength="6">
+                </div>
+                <div class="form-row">
+                    <label>Log In with:</label>
+                    <select id="settings-login-with">
+                        <option value="password">Password</option>
+                        <option value="pin">PIN</option>
+                    </select>
+                </div>
 
-        <!-- Login Type Toggle -->
-        <div class="setting-item" style="margin-bottom: 12px; text-align: left;">
-            <label for="login-type-toggle" style="display: block; margin-bottom: 6px;">Login Credential Type:</label>
-            <select id="login-type-toggle" style="width: 100%; padding: 8px;">
-                <option value="password">Master Password</option>
-                <option value="pin">Numeric PIN (4-6 digits)</option>
-            </select>
-        </div>
+                <!-- View and Edit Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 12px; margin-bottom: 20px;">
+                    <button onclick="toggleViewCredentials()" id="view-btn" class="secondary" style="flex: 1;">View 👁️</button>
+                    <button onclick="openEditCredentialsModal()" style="flex: 1;">Edit ✏️</button>
+                </div>
 
-        <!-- Credential Preset / Update -->
-        <div class="setting-item" style="margin-bottom: 16px; text-align: left;">
-            <label id="credential-label" for="master-credential" style="display: block; margin-bottom: 6px;">Set Master Password:</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="password" id="master-credential" placeholder="Enter new credential..." style="flex: 1; padding: 8px;" />
-                <button id="save-credential-btn" type="button" style="padding: 8px 16px;">Save Preset</button>
+                <!-- DANGER ZONE -->
+                <h3 style="margin-top: 24px; color: var(--danger);">Danger Zone</h3>
+                <button class="danger" onclick="factoryReset()" style="width: 100%;">Wipe Vault & Reset App</button>
             </div>
-            <small id="credential-hint" style="display: block; margin-top: 4px; color: var(--text-muted, #888);">Use a strong password (at least 8 characters recommended).</small>
         </div>
 
-        <h3 style="margin-top: 24px; text-align: left;">Change App Credential</h3>
-        <input type="password" id="old-pin" placeholder="Current Password or PIN">
-        <input type="password" id="new-pin" placeholder="New Password or PIN (4+ digits)">
-        <button onclick="updatePin()" style="width: 100%; margin-top: 8px;">Update Master Credential</button>
-
-        <h3 style="margin-top: 24px; color: var(--danger); text-align: left;">Danger Zone</h3>
-        <button class="danger" onclick="factoryReset()" style="width: 100%;">Wipe Vault & Reset App</button>
-            </div>
-        </div>
         <!-- NAVIGATION BAR -->
         <nav>
             <button onclick="switchPage('keyboard')" class="active" id="nav-keyboard">⌨️ Keyboard</button>
@@ -204,19 +241,40 @@
         </div>
     </div>
 
-<script>
-    // --- APP STATE & STORAGE ---
-    let masterKey = null; // CryptoKey derived from PIN
-    let currentPinInput = "";
-    let setupMode = false;
-    let appData = { ciphers: [], settings: { theme: 'dark' } };
-    let editingCipherId = null;
+    <!-- MODAL FOR EDITING CREDENTIALS -->
+    <div id="edit-cred-modal" class="container hidden" style="position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 200; display:flex;">
+        <div class="card" style="max-width: 400px; margin: auto; width: 90%;">
+            <h3>Edit Credentials</h3>
+            <p>Enter your current active credential to authorize changes, then set new values.</p>
+            
+            <input type="password" id="edit-current-auth" placeholder="Current Password or PIN">
+            <hr style="border-color: var(--border); margin: 12px 0;">
+            <input type="password" id="edit-new-password" placeholder="New Password (leave blank to keep current)">
+            <input type="password" id="edit-new-pin" placeholder="New PIN (leave blank to keep current)" inputmode="numeric" maxlength="6">
+            <select id="edit-new-login-with" style="margin-bottom: 16px;">
+                <option value="password">Log In with: Password</option>
+                <option value="pin">Log In with: PIN</option>
+            </select>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="saveUpdatedCredentials()">Save Changes</button>
+                <button onclick="closeEditCredentialsModal()" class="secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
 
-    // --- CRYPTO UTILITIES (AES-GCM & PBKDF2) ---
-    async function deriveKey(pin, salt) {
+<script>
+    let masterKey = null;
+    let setupMode = false;
+    let appData = { ciphers: [], settings: { theme: 'dark', loginWith: 'password' }, credentials: { password: '', pin: '' } };
+    let editingCipherId = null;
+    let credentialsRevealed = false;
+
+    // --- CRYPTO UTILITIES ---
+    async function deriveKey(secret, salt) {
         const enc = new TextEncoder();
         const keyMaterial = await window.crypto.subtle.importKey(
-            "raw", enc.encode(pin), { name: "PBKDF2" }, false, ["deriveKey"]
+            "raw", enc.encode(secret), { name: "PBKDF2" }, false, ["deriveKey"]
         );
         return window.crypto.subtle.deriveKey(
             { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
@@ -232,7 +290,6 @@
         const encoded = new TextEncoder().encode(JSON.stringify(secretObject));
         const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encoded);
         
-        // Bundle IV + Ciphertext into base64
         const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
         combined.set(iv, 0);
         combined.set(new Uint8Array(ciphertext), iv.byteLength);
@@ -247,7 +304,7 @@
             const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ciphertext);
             return JSON.parse(new TextDecoder().decode(decrypted));
         } catch (e) {
-            return null; // Decryption failed (Wrong PIN or corrupted)
+            return null;
         }
     }
 
@@ -257,49 +314,46 @@
         return window.crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
     }
 
-    // --- INITIALIZATION & LOCKOUT HANDLING ---
+    // --- INITIALIZATION ---
     window.addEventListener('load', async () => {
-        const vault = localStorage.getItem('securetext_vault');
-        const saltHex = localStorage.getItem('securetext_salt');
-        
-        // Adapt login input constraints based on saved preference (PIN vs Password)
-        const authType = localStorage.getItem('auth_type') || 'password';
-        const loginInput = document.getElementById('login-pin-input');
-        const loginPrompt = document.getElementById('login-prompt-text');
-
-        if (loginInput) {
-            if (authType === 'pin') {
-                if (loginPrompt) loginPrompt.textContent = 'Enter your 4-6 digit PIN to unlock.';
-                loginInput.placeholder = 'Enter 4-6 digit PIN';
-                loginInput.inputMode = 'numeric';
-                loginInput.maxLength = 6;
-            } else {
-                if (loginPrompt) loginPrompt.textContent = 'Enter your master password to unlock.';
-                loginInput.placeholder = 'Enter master password';
-                loginInput.inputMode = 'text';
-                loginInput.removeAttribute('maxLength');
-            }
-        }
+        const vault = localStorage.getItem('loonie_vault');
+        const saltHex = localStorage.getItem('loonie_salt');
 
         if (!vault || !saltHex) {
             setupMode = true;
-            document.getElementById('login-title').innerText = "Create Master Credential";
-            document.getElementById('login-desc').innerText = "Set a secure PIN or password to encrypt all your future ciphers.";
-            document.getElementById('pin-submit-btn').classList.remove('hidden');
+            document.getElementById('login-title').innerText = "Set Up Loonie Board";
+            document.getElementById('login-prompt-text').innerText = "Create your password, PIN, and login preference.";
+            document.getElementById('setup-section').classList.remove('hidden');
+        } else {
+            setupMode = false;
+            const loginWith = localStorage.getItem('loonie_login_with') || 'password';
+            document.getElementById('login-title').innerText = "Loonie Board Log In";
+            document.getElementById('login-prompt-text').innerText = `Enter your ${loginWith} to unlock.`;
+            document.getElementById('login-label').innerText = loginWith.charAt(0).toUpperCase() + loginWith.slice(1);
+            const input = document.getElementById('login-input');
+            if (loginWith === 'pin') {
+                input.placeholder = "Enter 4-6 digit PIN";
+                input.inputMode = "numeric";
+                input.maxLength = 6;
+            } else {
+                input.placeholder = "Enter password";
+                input.inputMode = "text";
+                input.removeAttribute("maxLength");
+            }
+            document.getElementById('login-section').classList.remove('hidden');
         }
-
         checkLockoutTimer();
     });
 
     function checkLockoutTimer() {
-        const lockoutUntil = localStorage.getItem('securetext_lockout');
+        const lockoutUntil = localStorage.getItem('loonie_lockout');
         if (lockoutUntil) {
             const remaining = parseInt(lockoutUntil) - Date.now();
             if (remaining > 0) {
                 lockoutActive(remaining);
             } else {
-                localStorage.removeItem('securetext_lockout');
-                localStorage.setItem('securetext_fails', '0');
+                localStorage.removeItem('loonie_lockout');
+                localStorage.setItem('loonie_fails', '0');
             }
         }
     }
@@ -315,108 +369,80 @@
                 lockoutActive(ms - 1000);
             } else {
                 msg.classList.add('hidden');
-                localStorage.removeItem('securetext_lockout');
-                localStorage.setItem('securetext_fails', '0');
+                localStorage.removeItem('loonie_lockout');
+                localStorage.setItem('loonie_fails', '0');
             }
         }, 1000);
     }
 
-    // --- PIN KEYPAD INTERACTION ---
-    function pressPin(num) {
-        if (localStorage.getItem('securetext_lockout')) return;
-        if (currentPinInput.length < 8) {
-            currentPinInput += num;
-            updatePinDots();
+    async function handleSetup() {
+        const pwd = document.getElementById('setup-password').value.trim();
+        const pin = document.getElementById('setup-pin').value.trim();
+        const loginWith = document.getElementById('setup-login-with').value;
+
+        if (!pwd && !pin) {
+            return showToast("Please set at least a Password or a PIN.");
         }
-        
-        // Always show the submit button once minimum length of 4 is met, 
-        // removing the forced auto-submit trap.
-        if (currentPinInput.length >= 4) {
-            document.getElementById('pin-submit-btn').classList.remove('hidden');
-        } else {
-            document.getElementById('pin-submit-btn').classList.add('hidden');
+        if (pwd && pwd.length < 8) {
+            return showToast("Password must be at least 8 characters long.");
         }
-    }
-
-    function backspacePin() {
-        currentPinInput = currentPinInput.slice(0, -1);
-        updatePinDots();
-    }
-
-    function clearPin() {
-        currentPinInput = "";
-        updatePinDots();
-    }
-
-    function updatePinDots() {
-        const dots = document.querySelectorAll('.pin-dot');
-        dots.forEach((dot, index) => {
-            if (index < currentPinInput.length) {
-                dot.classList.add('filled');
-            } else {
-                dot.classList.remove('filled');
-            }
-        });
-    }
-
-    async function submitPin() {
-        const pinInputVal = document.getElementById('login-pin-input').value.trim();
-        const authType = localStorage.getItem('auth_type') || 'password';
-
-        // Validate format based on chosen authentication type
-        if (authType === 'pin' && !/^\d{4,6}$/.test(pinInputVal)) {
-            showToast("PIN must be between 4 and 6 digits");
-            return;
-        } else if (authType === 'password' && pinInputVal.length < 8) {
-            showToast("Password must be at least 8 characters long");
-            return;
-        } else if (setupMode && pinInputVal.length < 4) {
-            showToast("Credential must be at least 4 characters");
-            return;
+        if (pin && !/^\d{4,6}$/.test(pin)) {
+            return showToast("PIN must be between 4 and 6 digits.");
         }
 
-        if (setupMode) {
-            // Create New Vault
-            const salt = window.crypto.getRandomValues(new Uint8Array(16));
-            masterKey = await deriveKey(pinInputVal, salt);
-            
-            // Save initial empty payload
-            appData = { ciphers: [{ id: 'default-1', name: 'Default Shared Cipher', passphrase: generateRandomString(12) }], settings: { theme: 'dark' } };
-            const encryptedVault = await encryptData(appData, masterKey);
-            
-            localStorage.setItem('securetext_vault', encryptedVault);
-            localStorage.setItem('securetext_salt', Array.from(salt).join(','));
-            
+        const activeSecret = loginWith === 'password' ? pwd : pin;
+        if (!activeSecret) {
+            return showToast(`You selected to log in with ${loginWith}, but left it blank!`);
+        }
+
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        masterKey = await deriveKey(activeSecret, salt);
+
+        appData = {
+            ciphers: [{ id: 'default-1', name: 'Default Shared Cipher', passphrase: generateRandomString(12) }],
+            settings: { theme: 'dark', loginWith: loginWith },
+            credentials: { password: pwd, pin: pin }
+        };
+
+        const encryptedVault = await encryptData(appData, masterKey);
+        localStorage.setItem('loonie_vault', encryptedVault);
+        localStorage.setItem('loonie_salt', Array.from(salt).join(','));
+        localStorage.setItem('loonie_login_with', loginWith);
+        sessionStorage.setItem('active_secret', activeSecret);
+
+        enterApp();
+    }
+
+    async function handleLogin() {
+        const inputVal = document.getElementById('login-input').value.trim();
+        const loginWith = localStorage.getItem('loonie_login_with') || 'password';
+
+        if (!inputVal) return showToast(`Please enter your ${loginWith}.`);
+
+        const saltStr = localStorage.getItem('loonie_salt');
+        const salt = Uint8Array.from(saltStr.split(',').map(Number));
+        const candidateKey = await deriveKey(inputVal, salt);
+
+        const vault = localStorage.getItem('loonie_vault');
+        const decrypted = await decryptData(vault, candidateKey);
+
+        if (decrypted) {
+            masterKey = candidateKey;
+            appData = decrypted;
+            localStorage.setItem('loonie_fails', '0');
+            sessionStorage.setItem('active_secret', inputVal);
             enterApp();
         } else {
-            // Verify Login
-            const saltStr = localStorage.getItem('securetext_salt');
-            const salt = Uint8Array.from(saltStr.split(',').map(Number));
-            const candidateKey = await deriveKey(pinInputVal, salt);
-            
-            const vault = localStorage.getItem('securetext_vault');
-            const decrypted = await decryptData(vault, candidateKey);
+            let fails = parseInt(localStorage.getItem('loonie_fails') || '0') + 1;
+            localStorage.setItem('loonie_fails', fails);
+            document.getElementById('login-input').value = "";
 
-            if (decrypted) {
-                masterKey = candidateKey;
-                appData = decrypted;
-                localStorage.setItem('securetext_fails', '0');
-                enterApp();
+            if (fails >= 3) {
+                const lockoutTime = Date.now() + (3 * 60 * 1000);
+                localStorage.setItem('loonie_lockout', lockoutTime);
+                lockoutActive(3 * 60 * 1000);
             } else {
-                // Failed login tracking
-                let fails = parseInt(localStorage.getItem('securetext_fails') || '0') + 1;
-                localStorage.setItem('securetext_fails', fails);
-                
-                // Clear the password field on failure
-                document.getElementById('login-pin-input').value = "";
-
-                if (fails >= 3) {
-                    const lockoutTime = Date.now() + (3 * 60 * 1000); // 3 minutes timeout
-                    localStorage.setItem('securetext_lockout', lockoutTime);
-                    lockoutActive(3 * 60 * 1000);
-                } else {
-                    showToast(`Incorrect credential. Attempt ${fails} of 3.`);
-                }
+                showToast(`Incorrect ${loginWith}. Attempt ${fails} of 3.`);
             }
         }
     }
@@ -426,11 +452,18 @@
         document.getElementById('app-wrapper').classList.remove('hidden');
         changeTheme(appData.settings.theme || 'dark');
         document.getElementById('theme-select').value = appData.settings.theme || 'dark';
+        
+        // Populate settings fields
+        if (appData.credentials) {
+            document.getElementById('settings-password').value = appData.credentials.password || '';
+            document.getElementById('settings-pin').value = appData.credentials.pin || '';
+            document.getElementById('settings-login-with').value = appData.settings.loginWith || 'password';
+        }
+
         renderCiphers();
         updateCipherSelect();
     }
 
-    // --- NAVIGATION ---
     function switchPage(pageName) {
         document.querySelectorAll('.app-page').forEach(p => p.classList.add('hidden'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -439,7 +472,86 @@
         document.getElementById(`nav-${pageName}`).classList.add('active');
     }
 
-    // --- KEYBOARD ENCRYPTION / DECRYPTION LOGIC ---
+    // --- VIEW / TOGGLE CREDENTIALS ON SETTINGS PAGE ---
+    function toggleViewCredentials() {
+        credentialsRevealed = !credentialsRevealed;
+        const pwdField = document.getElementById('settings-password');
+        const pinField = document.getElementById('settings-pin');
+        const viewBtn = document.getElementById('view-btn');
+
+        if (credentialsRevealed) {
+            pwdField.type = 'text';
+            pinField.type = 'text';
+            viewBtn.innerText = 'Hide 🙈';
+            showToast("Credentials revealed");
+        } else {
+            pwdField.type = 'password';
+            pinField.type = 'password';
+            viewBtn.innerText = 'View 👁️';
+            showToast("Credentials hidden");
+        }
+    }
+
+    // --- EDIT CREDENTIALS MODAL ---
+    function openEditCredentialsModal() {
+        document.getElementById('edit-current-auth').value = '';
+        document.getElementById('edit-new-password').value = appData.credentials.password || '';
+        document.getElementById('edit-new-pin').value = appData.credentials.pin || '';
+        document.getElementById('edit-new-login-with').value = appData.settings.loginWith || 'password';
+        document.getElementById('edit-cred-modal').classList.remove('hidden');
+    }
+
+    function closeEditCredentialsModal() {
+        document.getElementById('edit-cred-modal').classList.add('hidden');
+    }
+
+    async function saveUpdatedCredentials() {
+        const currentAuth = document.getElementById('edit-current-auth').value.trim();
+        const newPwd = document.getElementById('edit-new-password').value.trim();
+        const newPin = document.getElementById('edit-new-pin').value.trim();
+        const newLoginWith = document.getElementById('edit-new-login-with').value;
+
+        if (!currentAuth) return showToast("Enter your current credential to authorize changes.");
+        if (!newPwd && !newPin) return showToast("You must keep at least a password or a PIN.");
+        if (newPwd && newPwd.length < 8) return showToast("New password must be at least 8 characters long.");
+        if (newPin && !/^\d{4,6}$/.test(newPin)) return showToast("New PIN must be 4-6 digits.");
+
+        const activeNewSecret = newLoginWith === 'password' ? newPwd : newPin;
+        if (!activeNewSecret) return showToast(`Your selected login method (${newLoginWith}) cannot be blank!`);
+
+        // Verify current auth
+        const saltStr = localStorage.getItem('loonie_salt');
+        const salt = Uint8Array.from(saltStr.split(',').map(Number));
+        const candidateKey = await deriveKey(currentAuth, salt);
+        const decrypted = await decryptData(localStorage.getItem('loonie_vault'), candidateKey);
+
+        if (!decrypted) {
+            return showToast("Current credential is incorrect.");
+        }
+
+        // Generate new key and update vault state
+        const newSalt = window.crypto.getRandomValues(new Uint8Array(16));
+        masterKey = await deriveKey(activeNewSecret, newSalt);
+
+        appData.credentials = { password: newPwd, pin: newPin };
+        appData.settings.loginWith = newLoginWith;
+
+        localStorage.setItem('loonie_salt', Array.from(newSalt).join(','));
+        localStorage.setItem('loonie_login_with', newLoginWith);
+        await persistVaultState();
+
+        sessionStorage.setItem('active_secret', activeNewSecret);
+        closeEditCredentialsModal();
+
+        // Update settings UI values
+        document.getElementById('settings-password').value = newPwd;
+        document.getElementById('settings-pin').value = newPin;
+        document.getElementById('settings-login-with').value = newLoginWith;
+
+        showToast("Credentials successfully updated!");
+    }
+
+    // --- ENCRYPTION / DECRYPTION & CIPHERS ---
     async function encryptText() {
         const text = document.getElementById('msg-input').value;
         const cipherId = document.getElementById('active-cipher-select').value;
@@ -451,8 +563,7 @@
         const cipherKey = await deriveCipherKey(cipherObj.passphrase);
         const encrypted = await encryptData({ text: text }, cipherKey);
         
-        // Wrap with a clean prefix indicator
-        document.getElementById('msg-output').value = `[SECURETEXT:${cipherObj.name}]::${encrypted}`;
+        document.getElementById('msg-output').value = `[LOONIE:${cipherObj.name}]::${encrypted}`;
         showToast("Message encrypted successfully!");
     }
 
@@ -464,7 +575,6 @@
         const cipherObj = appData.ciphers.find(c => c.id === cipherId);
         if (!cipherObj) return showToast("Select a valid cipher");
 
-        // Extract ciphertext payload if wrapped
         let payload = rawInput;
         if (rawInput.includes('::')) {
             payload = rawInput.split('::')[1];
@@ -481,6 +591,12 @@
         }
     }
 
+    function clearMessageHub() {
+        document.getElementById('msg-input').value = '';
+        document.getElementById('msg-output').value = '';
+        showToast("Fields cleared");
+    }
+
     function copyOutput() {
         const output = document.getElementById('msg-output');
         output.select();
@@ -488,7 +604,6 @@
         showToast("Copied to clipboard!");
     }
 
-    // --- CIPHER MANAGEMENT ---
     function renderCiphers() {
         const container = document.getElementById('cipher-list');
         container.innerHTML = '';
@@ -564,8 +679,6 @@
         await persistVaultState();
         renderCiphers();
         updateCipherSelect();
-        
-        // Prompt automatic backup when creating/modifying
         exportJSON();
         showToast("Cipher saved & automatic backup triggered!");
     }
@@ -597,12 +710,11 @@
         return res;
     }
 
-    // --- IMPORT / EXPORT JSON BACKUPS ---
     async function exportJSON() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
         const dlAnchor = document.createElement('a');
         dlAnchor.setAttribute("href", dataStr);
-        dlAnchor.setAttribute("download", `securetext_ciphers_backup_${new Date().toISOString().slice(0,10)}.json`);
+        dlAnchor.setAttribute("download", `loonie_ciphers_backup_${new Date().toISOString().slice(0,10)}.json`);
         document.body.appendChild(dlAnchor);
         dlAnchor.click();
         dlAnchor.remove();
@@ -616,7 +728,6 @@
             try {
                 const imported = JSON.parse(e.target.result);
                 if (imported.ciphers && Array.isArray(imported.ciphers)) {
-                    // Merge ciphers safely avoiding duplicates
                     imported.ciphers.forEach(impC => {
                         if (!appData.ciphers.some(c => c.name === impC.name)) {
                             appData.ciphers.push(impC);
@@ -636,38 +747,9 @@
         reader.readAsText(file);
     }
 
-    // --- SETTINGS & VAULT PERSISTENCE ---
     async function persistVaultState() {
         const encrypted = await encryptData(appData, masterKey);
-        localStorage.setItem('securetext_vault', encrypted);
-    }
-
-    async function updatePin() {
-        const oldPin = document.getElementById('old-pin').value;
-        const newPin = document.getElementById('new-pin').value;
-
-        if (newPin.length < 4) return showToast("New PIN must be at least 4 digits");
-
-        // Verify old pin by testing derivation
-        const saltStr = localStorage.getItem('securetext_salt');
-        const salt = Uint8Array.from(saltStr.split(',').map(Number));
-        const candidateKey = await deriveKey(oldPin, salt);
-        
-        const decrypted = await decryptData(localStorage.getItem('securetext_vault'), candidateKey);
-        if (!decrypted) {
-            return showToast("Current PIN is incorrect.");
-        }
-
-        // Generate new salt and key
-        const newSalt = window.crypto.getRandomValues(new Uint8Array(16));
-        masterKey = await deriveKey(newPin, newSalt);
-        
-        localStorage.setItem('securetext_salt', Array.from(newSalt).join(','));
-        await persistVaultState();
-        
-        document.getElementById('old-pin').value = "";
-        document.getElementById('new-pin').value = "";
-        showToast("Master PIN changed successfully!");
+        localStorage.setItem('loonie_vault', encrypted);
     }
 
     function changeTheme(theme) {
@@ -683,7 +765,6 @@
         }
     }
 
-    // --- UI HELPER ---
     function showToast(text) {
         const t = document.getElementById('toast');
         t.innerText = text;
@@ -695,72 +776,9 @@
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // --- SERVICE WORKER REGISTRATION ---
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
     }
-
-        const loginToggle = document.getElementById('login-type-toggle');
-        const credentialInput = document.getElementById('master-credential');
-        const credentialLabel = document.getElementById('credential-label');
-        const credentialHint = document.getElementById('credential-hint');
-        const saveCredentialBtn = document.getElementById('save-credential-btn');
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedType = localStorage.getItem('auth_type') || 'password';
-            if (loginToggle) {
-                loginToggle.value = savedType;
-                updateCredentialUI(savedType);
-            }
-        });
-
-        if (loginToggle) {
-            loginToggle.addEventListener('change', (e) => {
-                const type = e.target.value;
-                localStorage.setItem('auth_type', type);
-                updateCredentialUI(type);
-            });
-        }
-
-        function updateCredentialUI(type) {
-            if (type === 'pin') {
-                credentialLabel.textContent = 'Set Login PIN:';
-                credentialInput.type = 'password';
-                credentialInput.inputMode = 'numeric';
-                credentialInput.maxLength = 6;
-                credentialHint.textContent = 'Enter a 4 to 6-digit numeric PIN.';
-            } else {
-                credentialLabel.textContent = 'Set Master Password:';
-                credentialInput.type = 'password';
-                credentialInput.inputMode = 'text';
-                credentialInput.removeAttribute('maxLength');
-                credentialHint.textContent = 'Use a strong password (at least 8 characters recommended).';
-            }
-        }
-
-        if (saveCredentialBtn) {
-            saveCredentialBtn.addEventListener('click', async () => {
-                const val = credentialInput.value;
-                const type = loginToggle.value;
-
-                if (type === 'pin' && !/^\d{4,6}$/.test(val)) {
-                    alert('PIN must be between 4 and 6 digits.');
-                    return;
-                } else if (type === 'password' && val.length < 8) {
-                    alert('Password must be at least 8 characters long.');
-                    return;
-                }
-
-                sessionStorage.setItem('active_credential', val);
-                
-                // Optional: Auto-fill the login input if they are testing it
-                const loginInput = document.getElementById('login-pin-input');
-                if (loginInput) loginInput.value = val;
-
-                alert('Master credential preset saved & loaded into login!');
-                credentialInput.value = '';
-            });
-        }
 </script>
 </body>
 </html>
