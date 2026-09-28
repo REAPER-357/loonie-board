@@ -64,6 +64,32 @@
         input, select, textarea { width: 100%; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-color); border-radius: 8px; font-size: 1rem; margin-bottom: 16px; outline: none; }
         input:focus, select:focus, textarea:focus { border-color: var(--primary); }
 
+        /* Password Wrapper for Peek Eye Button */
+        .password-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .password-container input {
+            margin-bottom: 0;
+            padding-right: 45px;
+        }
+        .peek-btn {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            padding: 4px;
+            margin: 0;
+            width: auto;
+        }
+        .peek-btn:hover { color: var(--text-color); background: none; }
+
         button { width: 100%; padding: 12px 16px; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s; margin-bottom: 8px; }
         button:hover { background-color: var(--primary-hover); }
         button.danger { background-color: var(--danger); }
@@ -77,7 +103,7 @@
 
         .form-row { display: flex; align-items: center; margin-bottom: 12px; gap: 12px; }
         .form-row label { width: 110px; font-weight: 500; font-size: 0.9rem; text-align: left; }
-        .form-row input, .form-row select { flex: 1; margin-bottom: 0; }
+        .form-row .password-container, .form-row select, .form-row input { flex: 1; margin-bottom: 0; }
 
         .cipher-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--input-bg); }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 500; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; }
@@ -101,11 +127,17 @@
             <div id="setup-section" class="hidden">
                 <div class="form-row">
                     <label>Password</label>
-                    <input type="password" id="setup-password" placeholder="8+ characters">
+                    <div class="password-container">
+                        <input type="password" id="setup-password" placeholder="8+ characters">
+                        <button type="button" class="peek-btn" onclick="togglePeek('setup-password', this)">👁️</button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <label>PIN</label>
-                    <input type="password" id="setup-pin" placeholder="4-6 digits" inputmode="numeric" maxlength="6">
+                    <div class="password-container">
+                        <input type="password" id="setup-pin" placeholder="4-6 digits" inputmode="numeric" maxlength="6">
+                        <button type="button" class="peek-btn" onclick="togglePeek('setup-pin', this)">👁️</button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <label>Log In with:</label>
@@ -121,7 +153,10 @@
             <div id="login-section" class="hidden">
                 <div class="form-row">
                     <label id="login-label">Password</label>
-                    <input type="password" id="login-input" placeholder="Enter credential" onkeydown="if(event.key === 'Enter') handleLogin()">
+                    <div class="password-container">
+                        <input type="password" id="login-input" placeholder="Enter credential" onkeydown="if(event.key === 'Enter') handleLogin()">
+                        <button type="button" class="peek-btn" onclick="togglePeek('login-input', this)">👁️</button>
+                    </div>
                 </div>
                 <button onclick="handleLogin()">Log In</button>
             </div>
@@ -192,11 +227,17 @@
                 
                 <div class="form-row">
                     <label>Password</label>
-                    <input type="password" id="settings-password" placeholder="Not set or hidden">
+                    <div class="password-container">
+                        <input type="password" id="settings-password" placeholder="Not set">
+                        <button type="button" class="peek-btn" onclick="togglePeek('settings-password', this)">👁️</button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <label>PIN</label>
-                    <input type="password" id="settings-pin" placeholder="Not set or hidden" inputmode="numeric" maxlength="6">
+                    <div class="password-container">
+                        <input type="password" id="settings-pin" placeholder="Not set" inputmode="numeric" maxlength="6">
+                        <button type="button" class="peek-btn" onclick="togglePeek('settings-pin', this)">👁️</button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <label>Log In with:</label>
@@ -208,8 +249,7 @@
 
                 <!-- View and Edit Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-top: 12px; margin-bottom: 20px;">
-                    <button onclick="toggleViewCredentials()" id="view-btn" class="secondary" style="flex: 1;">View 👁️</button>
-                    <button onclick="openEditCredentialsModal()" style="flex: 1;">Edit ✏️</button>
+                    <button onclick="openEditCredentialsModal()" style="flex: 1;">Edit Credentials ✏️</button>
                 </div>
 
                 <!-- DANGER ZONE -->
@@ -231,7 +271,12 @@
         <div class="card" style="max-width: 400px; margin: auto; width: 90%;">
             <h3 id="modal-heading">Create Cipher</h3>
             <input type="text" id="cipher-name" placeholder="Custom Cipher Name (e.g. Work Group)">
-            <input type="text" id="cipher-passphrase" placeholder="Passphrase or shared keyword">
+            
+            <div class="password-container" style="margin-bottom: 16px;">
+                <input type="password" id="cipher-passphrase" placeholder="Passphrase or shared keyword" style="margin-bottom:0;">
+                <button type="button" class="peek-btn" onclick="togglePeek('cipher-passphrase', this)">👁️</button>
+            </div>
+
             <button onclick="generateRandomPassphrase()" class="secondary" style="margin-bottom: 16px;">🎲 Generate Strong Passphrase</button>
             
             <div style="display: flex; gap: 10px;">
@@ -247,10 +292,21 @@
             <h3>Edit Credentials</h3>
             <p>Enter your current active credential to authorize changes, then set new values.</p>
             
-            <input type="password" id="edit-current-auth" placeholder="Current Password or PIN">
+            <div class="password-container" style="margin-bottom: 12px;">
+                <input type="password" id="edit-current-auth" placeholder="Current Password or PIN" style="margin-bottom:0;">
+                <button type="button" class="peek-btn" onclick="togglePeek('edit-current-auth', this)">👁️</button>
+            </div>
             <hr style="border-color: var(--border); margin: 12px 0;">
-            <input type="password" id="edit-new-password" placeholder="New Password (leave blank to keep current)">
-            <input type="password" id="edit-new-pin" placeholder="New PIN (leave blank to keep current)" inputmode="numeric" maxlength="6">
+            <p style="font-size: 0.8rem; margin-bottom: 6px;">New Password (leave blank or edit)</p>
+            <div class="password-container" style="margin-bottom: 12px;">
+                <input type="password" id="edit-new-password" placeholder="New Password" style="margin-bottom:0;">
+                <button type="button" class="peek-btn" onclick="togglePeek('edit-new-password', this)">👁️</button>
+            </div>
+            <p style="font-size: 0.8rem; margin-bottom: 6px;">New PIN (leave blank or edit)</p>
+            <div class="password-container" style="margin-bottom: 12px;">
+                <input type="password" id="edit-new-pin" placeholder="New PIN" inputmode="numeric" maxlength="6" style="margin-bottom:0;">
+                <button type="button" class="peek-btn" onclick="togglePeek('edit-new-pin', this)">👁️</button>
+            </div>
             <select id="edit-new-login-with" style="margin-bottom: 16px;">
                 <option value="password">Log In with: Password</option>
                 <option value="pin">Log In with: PIN</option>
@@ -268,7 +324,18 @@
     let setupMode = false;
     let appData = { ciphers: [], settings: { theme: 'dark', loginWith: 'password' }, credentials: { password: '', pin: '' } };
     let editingCipherId = null;
-    let credentialsRevealed = false;
+
+    // --- PEEK TOGGLE UTILITY ---
+    function togglePeek(fieldId, btn) {
+        const input = document.getElementById(fieldId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.innerText = '🔒';
+        } else {
+            input.type = 'password';
+            btn.innerText = '👁️';
+        }
+    }
 
     // --- CRYPTO UTILITIES ---
     async function deriveKey(secret, salt) {
@@ -472,26 +539,6 @@
         document.getElementById(`nav-${pageName}`).classList.add('active');
     }
 
-    // --- VIEW / TOGGLE CREDENTIALS ON SETTINGS PAGE ---
-    function toggleViewCredentials() {
-        credentialsRevealed = !credentialsRevealed;
-        const pwdField = document.getElementById('settings-password');
-        const pinField = document.getElementById('settings-pin');
-        const viewBtn = document.getElementById('view-btn');
-
-        if (credentialsRevealed) {
-            pwdField.type = 'text';
-            pinField.type = 'text';
-            viewBtn.innerText = 'Hide 🙈';
-            showToast("Credentials revealed");
-        } else {
-            pwdField.type = 'password';
-            pinField.type = 'password';
-            viewBtn.innerText = 'View 👁️';
-            showToast("Credentials hidden");
-        }
-    }
-
     // --- EDIT CREDENTIALS MODAL ---
     function openEditCredentialsModal() {
         document.getElementById('edit-current-auth').value = '';
@@ -641,6 +688,7 @@
         document.getElementById('modal-heading').innerText = "Create New Cipher";
         document.getElementById('cipher-name').value = "";
         document.getElementById('cipher-passphrase').value = "";
+        document.getElementById('cipher-passphrase').type = "password"; // ensure hidden default
         document.getElementById('cipher-modal').classList.remove('hidden');
     }
 
@@ -650,6 +698,7 @@
         document.getElementById('modal-heading').innerText = "Edit Cipher";
         document.getElementById('cipher-name').value = cipher.name;
         document.getElementById('cipher-passphrase').value = cipher.passphrase;
+        document.getElementById('cipher-passphrase').type = "password"; // ensure hidden default
         document.getElementById('cipher-modal').classList.remove('hidden');
     }
 
